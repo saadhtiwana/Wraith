@@ -13,7 +13,7 @@ if (!GEMINI_API_KEY) {
 }
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`
 
-// Memory store for last N messages per user
+// Memory store for last N messages per user; basicaallyyy the context thing
 const MESSAGE_HISTORY_LIMIT = 6;
 const userHistories = {};
 
