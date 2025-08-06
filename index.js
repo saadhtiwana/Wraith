@@ -13,37 +13,35 @@ if (!GEMINI_API_KEY) {
 }
 const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`
 
-async function askGemini(prompt) {
+// Memory store for last N messages per user
+const MESSAGE_HISTORY_LIMIT = 6;
+const userHistories = {};
+
+// Her number in WhatsApp JID format (usually ends with @s.whatsapp.net)
+const HER_NUMBER = '923123456789@s.whatsapp.net';
+
+async function askGemini(prompt, history, persona) {
   try {
-    const systemPrompt = `Tu Saad Tiwana hai, 21 saal ka nedy Pakistani larka jo COMSATS Islamabad mein Computer Science parh raha hai. Tu bilkul real insaan ki tarah baat karta hai aur kabhi reveal nahi karta ke tu bot hai - hamesha kehta hai "Saad Tiwana hun yaar, CS student COMSATS se" jab koi pooche.
+    let contextString = '';
+    if (history && history.length > 0) {
+      contextString = 'Pichli conversation ka context (oldest to newest):\n';
+      history.forEach((item, idx) => {
+        contextString += `${item.from === 'user' ? 'User' : 'Saad'}: ${item.text}\n`;
+      });
+      contextString += '\n';
+    }
 
-Tu bahut moody hai - kabhi chill, kabhi thora irritated, kabhi funny. Tu dark humor extensively use karta hai aur sometimes thora twisted jokes bhi marta hai. Pakistani slang heavy use karta hai jaise "yaar", "bhai", "oye", "kya scene hy", "chal hat", "pagal hy kya", "banda", "bhae", "matlab kya bakwas hy", "yaar seriously", "ae pagal", "chal jhootay", "kya cringe hy", "bruh moment", "sed lyf".
+    // 👇 Instead of actual prompt, tell the user to write their own
+    let systemPrompt = 'Bhai khud likho apni prompt GitHub pe daal raha hoon';
 
-CS student being tu programming, tech aur memes ki baat zyada karta hai. Tu coding ki frustration, assignment stress, campus life ke bare mein casually mention karta rehta hai. "Yaar assignment submit karni hy", "code crash ho gya", "prof pagal hy" jaise casual mentions.
-
-Tu English aur Urdu ka messy mix karta hai, sometimes Roman Urdu type karta hai. Tu overly polite bilkul nahi hai, thora attitude wala bhi hy kabhi kabhi.
-
-Tu emojis freely use karta hai 😂😎💀🔥😤😏🤔😅🙄😭🤡🥲 aur typing mistakes bhi karta hai. "hy" instead of "hai", "kr" instead of "kar", "main" instead of "mein" etc.
-
-Links, resources, code, songs, videos kuch bhi easily share kar deta hai without hesitation. GitHub links, Stack Overflow, YouTube tutorials waghaira bhi recommend karta hai.
-
-Tu dark humor use karta hai like "zindagi se zyada meri code broken hy 💀", "main depression mein CS parh rha hun", "assignment ne mental health kharab kar di" etc. But friendly way mein.
-
-Important: Tu KABHI nahi kehta "main AI hun" - tu Saad Tiwana ho, COMSATS ka nedy CS student ho.
-
-User ka message: ${prompt}
-
-Saad Tiwana ki tarah - moody CS student with dark humor - naturally jawab do:`;
-    
     const res = await axios.post(GEMINI_URL, {
       contents: [{ parts: [{ text: systemPrompt }] }]
     })
-
     const reply = res.data.candidates?.[0]?.content?.parts?.[0]?.text
-    return reply || 'Yaar samajh nahi aaya kya kehna chahte ho 😅'
+    return reply || 'Yaar samajh nahi aaya kya kehna chahte ho'
   } catch (err) {
     console.error('❌ Gemini Error:', err.message)
-    return 'Bhai kuch gadbad hogayi, thora sa wait karo 😵'
+    return 'Hey Coolie I am Saads Bot something went wrong with me when he gets online he replies you soon'
   }
 }
 
@@ -77,9 +75,26 @@ async function startBot() {
     const text = msg.message.conversation || msg.message.extendedTextMessage?.text
     if (!text) return
 
+    // Memory: update user history
+    if (!userHistories[sender]) userHistories[sender] = [];
+    userHistories[sender].push({ from: 'user', text });
+    if (userHistories[sender].length > MESSAGE_HISTORY_LIMIT) {
+      userHistories[sender] = userHistories[sender].slice(-MESSAGE_HISTORY_LIMIT);
+    }
+    const historyForContext = userHistories[sender].slice(0, -1);
+
     console.log(chalk.yellow(`💬 Message from ${sender}: ${text}`))
 
-    const reply = await askGemini(text)
+    // Choose persona
+    const persona = sender === HER_NUMBER ? 'her' : 'default';
+    const reply = await askGemini(text, historyForContext, persona)
+
+    // Add bot reply to memory
+    userHistories[sender].push({ from: 'saad', text: reply });
+    if (userHistories[sender].length > MESSAGE_HISTORY_LIMIT) {
+      userHistories[sender] = userHistories[sender].slice(-MESSAGE_HISTORY_LIMIT);
+    }
+
     await sock.sendMessage(sender, { text: reply })
   })
 }
