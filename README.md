@@ -1,4 +1,4 @@
-Wraith
+#Wraith
 
 Wraith is a programmatic WhatsApp personality emulator
 Think of it as a ghost version of you who replies instantly
