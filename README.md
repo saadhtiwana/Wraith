@@ -374,5 +374,5 @@ node index.js
 ### 🌟 **Give Wraith a Star on GitHub**
 #### *Or Wraith will ghost you too* 😈
 
-**Built with 💜 by [Saad](https://github.com/saadhtiwana)**  
+**Built with 💜 by [Saad](https://github.com/saadhtiwana)**
 *Making digital relationships effortless, one message
